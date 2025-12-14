@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Investasi (Flat vs Smart Capped)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS untuk Membaca Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Chart.js untuk Grafik -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- PDF LIBRARIES -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #fcfcfc;
+            color: #333;
+            font-size: 0.8125rem;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container-wrapper {
+            background-color: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            border-radius: 12px;
+            border: 1px solid #eeeeee;
+            padding: 1.5rem;
+            margin-top: 6rem; 
+            margin-bottom: 2rem;
+            width: 100%;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .container-wrapper {
+                margin-top: 4.5rem; 
+                padding: 1rem;
+                width: 96%;
+            }
+        }
+
+        .header-global {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem 2.5rem; 
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 50;
+            color: #333333;
+            height: 60px;
+        }
+
+        .mobile-nav-link-custom {
+          font-size: 1.1rem;
+          line-height: 1.75rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            justify-content: flex-start; 
+        }
+
+        .label-wrapper {
+            min-height: 1.5rem;
+            display: flex;
+            align-items: flex-end; 
+            justify-content: space-between; /* Updated for toggle */
+            margin-bottom: 0.1rem;
+        }
+
+        .input-field {
+            border: 1px solid #e0e0e0;
+            background-color: #ffffff;
+            color: #333;
+            border-radius: 6px;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.875rem;
+            width: 100%;
+            height: 38px;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6;
+            ring: 1px solid #3b82f6;
+        }
+        
+        .input-field:disabled {
+            background-color: #f3f4f6;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .file-upload-wrapper {
+            border: 2px dashed #e0e0e0;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            margin-bottom: 1rem;
+        }
+        .file-upload-wrapper.uploaded {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+        }
+
+        .input-label {
+            color: #5a5a5a;
+            font-weight: 500;
+            font-size: 0.75rem;
+            line-height: 1.2;
+        }
+        
+        .button-green, .button-light {
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .button-green {
+            background-color: #222222;
+            color: white;
+        }
+        .button-light {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: separate; 
+            border-spacing: 0;
+            margin-top: 0; 
+            min-width: 800px;
+            font-size: 0.65rem; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 8px; 
+            overflow: hidden; 
+        }
+
+        .results-table th, .results-table td {
+            border-bottom: 1px solid #e5e7eb;
+            border-right: 1px solid #f3f4f6; 
+            padding: 0.35rem 0.5rem; 
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .results-table thead th {
+            background-color: #f9fafb;
+            color: #374151;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.65rem;
+            letter-spacing: 0.05em;
+        }
+
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            z-index: 20;
+            background-color: #ffffff;
+            border-right: 2px solid #e5e7eb !important; 
+        }
+        
+        .row-label {
+            font-weight: 600;
+            color: #4b5563;
+            text-align: left;
+            background-color: #f9fafb; 
+        }
+
+        .year-header {
+            background-color: #1f2937 !important; 
+            color: #ffffff !important;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.75rem;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .net-profit-cell {
+            background-color: #ecfdf5 !important; 
+            color: #059669 !important; 
+            font-weight: 700;
+            border-left: 2px solid #10b981; 
+        }
+
+        .results-table tbody tr:hover td {
+            background-color: #fafafa;
+        }
+
+        .info-section {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            text-align: left;
+            width: 100%;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .download-button {
+            background-color: #e0e0e0;
+            color: #333;
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border: none;
+            margin-top: 1rem;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+        
+        .pdf-button {
+            background-color: #dc2626; 
+            color: white;
+            margin-top: 0.5rem; 
+        }
+        
+        .logic-card {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.25rem;
+            height: 100%;
+        }
+        .logic-formula {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #d946ef; 
+            display: block;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            height: 40vh;
+            min-height: 300px;
+            width: 100%;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .future-value-display {
+            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column; 
+            gap: 0.75rem; 
+            text-align: left;
+            font-size: 0.9rem;
+            font-weight: 300;
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+        
+        .future-value-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .future-value-row span:last-child {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #222;
+        }
+
+        .risk-metric-card {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .risk-metric-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #6b7280;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        .risk-metric-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #111827;
+        }
+        .heatmap-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+        .heatmap-table th, .heatmap-table td {
+            border: 1px solid #e5e7eb;
+            padding: 0.5rem;
+            text-align: center;
+        }
+        .heatmap-cell {
+            color: #1f2937;
+            font-weight: 500;
+        }
+        .text-xs { font-size: 0.75rem; }
+        .font-bold { font-weight: 700; }
+        .text-green-600 { color: #16a34a; }
+        .text-orange-500 { color: #f97316; }
+        .text-red-600 { color: #dc2626; }
+        
+        /* Utility for small real text */
+        .real-val-display {
+            font-size: 0.6rem;
+            color: #9ca3af;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+        
+        /* Simple guide style */
+        .guide-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .guide-number {
+            background-color: #2563eb;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* Toggle Switch Style */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #10b981;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #10b981;
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header class="header-global px-4 md:px-10">
+        <div class="flex items-center">
+            <a href="index.html" class="font-light text-l text-gray-800">Investasi</a>
+        </div>
+        <nav class="hidden md:flex items-center space-x-6 font-light text-sm">
+            <a href="index.html" class="hover:text-blue-600 transition-colors">Home</a>
+            <a href="about_new.html" class="hover:text-blue-600 transition-colors">About</a>
+            <a href="services.html" class="hover:text-blue-600 transition-colors">Services</a>
+            <a href="contact.html" class="hover:text-blue-600 transition-colors">Contact</a>
+            <a href="beranda.html" class="hover:text-blue-600 transition-colors">Beranda</a>
+            <a href="investasi.html" class="hover:text-blue-600 transition-colors font-medium text-blue-600">Investasi</a>
+            <a href="backtest.html" class="hover:text-blue-600 transition-colors ">Backtest</a>
+        </nav>
+        <div class="md:hidden">
+            <button id="hamburger-button" class="text-gray-700 focus:outline-none p-1">
+                <svg id="hamburger-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <div id="mobileMenu" class="hidden fixed inset-0 bg-white/95 backdrop-blur-lg z-50 transition-opacity duration-300 ease-in-out">
+        <button id="closeMenuBtn" class="fixed top-4 right-4 z-50 text-black focus:outline-none p-2 bg-gray-100 rounded-full">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+        <div class="flex flex-col items-center justify-center h-full w-full p-6">
+            <nav class="flex flex-col items-center space-y-4">
+                <a href="index.html" class="mobile-nav-link-custom font-light text-black hover:text-blue-700">Home</a>
+                <a href="investasi.html" class="mobile-nav-link-custom font-medium text-blue-600 hover:text-blue-700">Investasi</a>
+                <a href="backtest.html" class="mobile-nav-link-custom font-light text-black hover:text-blue-700">Backtest</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container-wrapper" id="calculatorContainer">
+        <h1 class="text-xl md:text-2xl font-light text-primary mb-4 text-center md:text-left text-gray-800">Kalkulator Investasi & Backtest</h1>
+
+        <div class="file-upload-wrapper py-4 px-2" id="dropZone">
+            <input type="file" id="csvFileInput" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" class="hidden">
+            <label for="csvFileInput" class="cursor-pointer block">
+                <p class="text-sm font-medium text-gray-700">📂 Unggah Data Excel (.xlsx / .csv)</p>
+                <p class="text-[10px] text-gray-400 mt-1" id="fileStatusText">Format Wajib: Ada kolom 'No' & 'Status'.</p>
+            </label>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 items-start" id="inputSection">
+            <div class="input-group">
+                <div class="label-wrapper">
+                    <label for="investmentAmount" class="input-label">Modal Awal ($)</label>
+                </div>
+                <input type="number" id="investmentAmount" class="input-field" value="100000" placeholder="100000">
+            </div>
+            
+            <div class="input-group">
+                <div class="label-wrapper">
+                    <label for="pairSelect" class="input-label">Instrumen</label>
+                </div>
+                <select id="pairSelect" class="input-field cursor-pointer">
+                    <option value="Xauusd">XAUUSD</option>
+                    <option value="Nasdaq">Nasdaq</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <div class="label-wrapper">
+                    <label for="riskPerTradePercentage" class="input-label">Risk / Trade (%)</label>
+                </div>
+                <input type="number" id="riskPerTradePercentage" class="input-field" value="1" step="0.01" placeholder="1">
+            </div>
+            
+            <div class="input-group">
+                <div class="label-wrapper">
+                    <label for="monthlyReturn" class="input-label">Target Bln (%)</label>
+                    
+                    <!-- NEW: Toggle for Chart Comparison -->
+                    <div class="flex items-center ml-2">
+                         <input type="checkbox" id="compareChartToggle" class="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                         <label for="compareChartToggle" class="ml-1 text-[10px] text-gray-500 font-medium cursor-pointer select-none">Bandingkan vs Flat</label>
+                    </div>
+                </div>
+                <input type="number" id="monthlyReturn" class="input-field" value="5" step="0.01" placeholder="Kosong = Flat Mode" title="Kosongkan untuk perhitungan kalkulasi biasa tanpa compounding sama sekali.">
+            </div>
+        </div>
+
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+            <h3 class="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wider">Manajemen Arus Kas (Cash Flow)</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="input-group">
+                    <div class="label-wrapper">
+                        <label for="monthlyDeposit" class="input-label">Deposit Rutin/Bln ($)</label>
+                    </div>
+                    <input type="number" id="monthlyDeposit" class="input-field" value="0" placeholder="0">
+                </div>
+                <div class="input-group">
+                    <div class="label-wrapper">
+                        <label for="monthlyWithdrawal" class="input-label">Penarikan Rutin/Bln ($)</label>
+                    </div>
+                    <input type="number" id="monthlyWithdrawal" class="input-field" value="0" placeholder="0">
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-row gap-3 mb-6">
+            <button id="resetBtn" class="button-light flex-1 justify-center">Reset</button>
+            <button id="calculateBtn" class="button-green flex-1 justify-center">Hitung</button>
+        </div>
+
+        <div class="future-value-display">
+            <div class="future-value-row">
+                <span>Saldo Akhir (Real Balance):</span>
+                <span id="futureValue">0 USD</span>
+            </div>
+            <div class="future-value-row" style="border-top: 1px solid #eee; padding-top: 0.5rem;">
+                <span style="font-size: 0.85rem; color: #555;">Basis Modal Risiko Terakhir (Lot):</span>
+                <span id="riskCapitalDisplay" class="text-gray-600 font-bold">0 USD</span>
+            </div>
+            <div class="future-value-row" style="border-top: 1px solid #eee; padding-top: 0.5rem;">
+                <span style="font-size: 0.85rem; color: #555;">Total Pertumbuhan (Real):</span>
+                <span id="totalGrowth" class="text-green-600">0.00%</span>
+            </div>
+            <div class="future-value-row" style="border-top: 1px solid #eee; padding-top: 0.5rem;">
+                <span style="font-size: 0.85rem; color: #555;">Max Drawdown (Global Terbesar):</span>
+                <span id="maxDrawdownDisplay" class="text-red-600">0.00%</span>
+            </div>
+            <!-- NEW: Max DD Value -->
+            <div class="future-value-row" style="border-top: 1px solid #eee; padding-top: 0.5rem;">
+                <span style="font-size: 0.85rem; color: #555;">Nilai Rugi Max Drawdown:</span>
+                <span id="maxDrawdownValueDisplay" class="text-red-600 font-medium">0 USD</span>
+            </div>
+        </div>
+
+        <!-- FITUR RISK METRICS DASHBOARD -->
+        <div id="riskMetricsDashboard" class="hidden mb-6">
+            <h3 class="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wider">Transparansi Risiko & Kualitas Aset</h3>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div class="risk-metric-card">
+                    <span class="risk-metric-label">Sharpe Ratio</span>
+                    <span id="sharpeRatioVal" class="risk-metric-value">N/A</span>
+                    <span class="text-[10px] text-gray-400">Annualized</span>
+                </div>
+                <div class="risk-metric-card">
+                    <span class="risk-metric-label">Sortino Ratio</span>
+                    <span id="sortinoRatioVal" class="risk-metric-value">N/A</span>
+                    <span class="text-[10px] text-gray-400">Downside Only</span>
+                </div>
+                <div class="risk-metric-card">
+                    <span class="risk-metric-label">Profit Factor</span>
+                    <span id="profitFactorVal" class="risk-metric-value">N/A</span>
+                    <span class="text-[10px] text-gray-400">Gross Win / Gross Loss</span>
+                </div>
+                <div class="risk-metric-card">
+                    <span class="risk-metric-label">Win Rate</span>
+                    <span id="winRateVal" class="risk-metric-value">N/A</span>
+                    <span class="text-[10px] text-gray-400">Winning Trades %</span>
+                </div>
+                <div class="risk-metric-card">
+                    <span class="risk-metric-label">Probabilitas Loss</span>
+                    <span id="lossProbVal" class="risk-metric-value">N/A</span>
+                    <span class="text-[10px] text-gray-400">Losing Trades %</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg shadow-sm border border-gray-200 mb-6">
+            <table class="results-table" id="resultsTable">
+                <thead>
+                    <tr>
+                        <th rowspan="2" class="sticky-col z-30" style="min-width: 80px;">Tahun</th>
+                        <th colspan="12" style="border-bottom: 2px solid #e5e7eb;">Bulan</th>
+                        <th rowspan="2" class="sticky right-0 z-20 bg-gray-50 border-l border-gray-200">Total</th>
+                    </tr>
+                    <tr>
+                        <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>Mei</th><th>Jun</th>
+                        <th>Jul</th><th>Agu</th><th>Sep</th><th>Okt</th><th>Nov</th><th>Des</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTableBody">
+                    <!-- Results akan muncul di sini -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- FITUR VISUALISASI DATA: HEATMAP & DRAWDOWN -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 hidden" id="advancedCharts">
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 class="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">Heatmap Kinerja Bulanan (%)</h3>
+                <div class="overflow-x-auto" id="heatmapContainer"></div>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 class="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">Underwater Chart (Drawdown)</h3>
+                <div class="h-[200px] w-full">
+                    <canvas id="drawdownChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="growthChart"></canvas>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-8">
+            <button id="downloadExcelBtn" class="download-button mt-0">Unduh Excel</button>
+            <button id="downloadPdfBtn" class="download-button pdf-button mt-0">Unduh PDF Laporan Lengkap</button>
+        </div>
+
+        <!-- Bagian Penjelasan / Panduan Pengguna -->
+        <section class="info-section bg-blue-50 border-blue-100">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Panduan Singkat & Cara Membaca Data</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-sm font-bold text-gray-700 mb-3 uppercase">Cara Penggunaan</h3>
+                    <div class="guide-step">
+                        <div class="guide-number">1</div>
+                        <div class="text-xs text-gray-600">
+                            <strong>Upload Data:</strong> Masukkan file Excel/CSV riwayat trading Anda.
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="guide-number">2</div>
+                        <div class="text-xs text-gray-600">
+                            <strong>Isi Modal & Risiko:</strong> Tentukan modal awal dan berapa persen risiko per trade.
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="guide-number">3</div>
+                        <div class="text-xs text-gray-600">
+                            <strong>Target Bulanan (%):</strong> 
+                            <br>- <strong>Isi Angka (misal 5):</strong> Mode Smart. Compounding lot HANYA JIKA target tembus.
+                            <br>- <strong>Kosongkan:</strong> Mode Flat. Kalkulasi biasa. Tidak ada compounding sama sekali. Lot risiko selalu berdasarkan modal awal.
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-gray-700 mb-3 uppercase">Arti Warna di Tabel (Mode Target)</h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-center gap-3 bg-white p-2 rounded border border-gray-100">
+                            <span class="w-3 h-3 rounded-full bg-green-600"></span>
+                            <div class="text-xs">
+                                <span class="font-bold text-green-700">Hijau (Target Tercapai)</span>
+                                <p class="text-gray-500">Saldo Naik + Lot Bulan Depan NAIK.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-center gap-3 bg-white p-2 rounded border border-gray-100">
+                            <span class="w-3 h-3 rounded-full bg-orange-500"></span>
+                            <div class="text-xs">
+                                <span class="font-bold text-orange-600">Oranye (Profit Tapi < Target)</span>
+                                <p class="text-gray-500">Saldo Naik (Uang masuk) + Lot Bulan Depan TETAP.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-center gap-3 bg-white p-2 rounded border border-gray-100">
+                            <span class="w-3 h-3 rounded-full bg-red-600"></span>
+                            <div class="text-xs">
+                                <span class="font-bold text-red-600">Merah (Rugi)</span>
+                                <p class="text-gray-500">Saldo Turun. Dalam mode Flat, Lot tetap.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <section class="info-section mt-4 bg-gray-50 border-t border-gray-200" id="logicSection">
+        <h2 class="text-lg text-primary mb-4">Bedah Logika Teknis</h2>
+        <p class="text-sm text-gray-500 mb-6">Sistem memisahkan logika berdasarkan Input Target:</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="logic-card">
+                <h3 class="text-sm text-gray-800 font-bold mb-2">1. Mode Flat (Target Kosong)</h3>
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    Kalkulasi keuntungan biasa (Simple Calculation). Basis Resiko (Lot) <strong>SELALU SAMA</strong> dengan Modal Awal. Tidak ada compounding.
+                </p>
+                <code class="logic-formula">Risk Base = Start Capital (Fixed)</code>
+            </div>
+    
+            <div class="logic-card">
+                <h3 class="text-sm text-gray-800 font-bold mb-2">2. Mode Capped (Target Diisi)</h3>
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    Basis Resiko hanya naik jika <strong>Profit >= Target</strong>. Jika Oranye, saldo naik tapi resiko lot bulan depan tidak naik.
+                </p>
+                <code class="logic-formula">Risk Update if >= Target</code>
+            </div>
+
+             <div class="logic-card">
+                <h3 class="text-sm text-gray-800 font-bold mb-2">3. Pertumbuhan ROI</h3>
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    Persentase pertumbuhan (tabel %) dihitung akumulatif berdasarkan Modal Awal (Input). Bukan dari saldo berjalan.
+                </p>
+                <code class="logic-formula">ROI = Sum(PnL) / Input Capital * 100</code>
+            </div>
+        </div>
+    </section>
+
+    <footer class="w-full py-4 text-center text-gray-400 text-[10px] font-light bg-gray-50 border-t border-gray-200">
+        Leodra Sint | Think like a dealer, not like a player.
+    </footer>
+
+    <script>
+        let myChart = null; 
+        let drawdownChart = null; 
+        let startCapitalGlobal = 0; // Needed for tooltip
+
+        function formatUSD(num) {
+            const formattedNum = new Intl.NumberFormat('en-US', { 
+                minimumFractionDigits: 0, maximumFractionDigits: 0
+            }).format(num);
+            return `${formattedNum} USD`;
+        }
+
+        function formatK(num) {
+            return new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+        }
+
+        // --- MATH HELPERS FOR RISK METRICS ---
+        function calculateStandardDeviation(values) {
+            const n = values.length;
+            if (n === 0) return 0;
+            const mean = values.reduce((a, b) => a + b, 0) / n;
+            return Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / n);
+        }
+
+        function calculateDownsideDeviation(values, target = 0) {
+            const n = values.length;
+            if (n === 0) return 0;
+            const downsideDiffs = values.map(x => Math.min(x - target, 0));
+            const sumSq = downsideDiffs.map(x => Math.pow(x, 2)).reduce((a, b) => a + b, 0);
+            if(sumSq === 0) return 0;
+            return Math.sqrt(sumSq / n);
+        }
+        
+        function average(arr) {
+            if(arr.length === 0) return 0;
+            return arr.reduce((a, b) => a + b, 0) / arr.length;
+        }
+
+        function exportToCsv(filename) {
+            const table = document.querySelector('.results-table');
+            let csv = [];
+            const rows = table.querySelectorAll("tr");
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll("td, th");
+                for (let j = 0; j < cols.length; j++) {
+                    let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, " ").trim(); 
+                    data = data.replace(/,/g, ""); 
+                    row.push(data);
+                }
+                csv.push(row.join(","));        
+            }
+            const csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
+            const downloadLink = document.createElement("a");
+            downloadLink.download = filename;
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = "none";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+
+        async function exportToPdf() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); 
+            
+            doc.setFontSize(16);
+            doc.text("Laporan Simulasi Capped Compounding", 14, 20);
+            
+            const investAmount = document.getElementById('investmentAmount').value;
+            const pair = document.getElementById('pairSelect').options[document.getElementById('pairSelect').selectedIndex].text;
+            const futureVal = document.getElementById('futureValue').innerText;
+            
+            doc.setFontSize(10);
+            let startY = 30;
+            doc.text(`Tanggal Laporan: ${new Date().toLocaleDateString('id-ID')}`, 14, startY);
+            doc.text(`Modal Awal: ${formatUSD(investAmount)}`, 14, startY + 6);
+            doc.text(`Saldo Akhir: ${futureVal}`, 14, startY + 12);
+            
+            doc.autoTable({
+                html: '#resultsTable', 
+                startY: startY + 20,   
+                theme: 'grid',
+                headStyles: { fillColor: [31, 41, 55], fontSize: 7 },
+                bodyStyles: { fontSize: 7 }
+            });
+
+            doc.save(`Laporan_Investasi_${new Date().toISOString().slice(0, 10)}.pdf`);
+        }
+
+        function renderChart(labels, data, secondDataset = null) {
+            const ctx = document.getElementById('growthChart').getContext('2d');
+            let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(34, 197, 94, 0.2)'); 
+            gradient.addColorStop(1, 'rgba(34, 197, 94, 0.0)'); 
+
+            if (myChart) myChart.destroy(); 
+            
+            const datasets = [{
+                label: 'Compounding (Capped)',
+                data: data,
+                borderColor: '#059669', 
+                backgroundColor: gradient,
+                borderWidth: 2,
+                pointRadius: 2, 
+                fill: true,
+                tension: 0.2 
+            }];
+
+            if (secondDataset) {
+                datasets.push({
+                    label: 'Flat (Tanpa Compounding)',
+                    data: secondDataset,
+                    borderColor: '#9ca3af', // Gray
+                    backgroundColor: 'rgba(0,0,0,0)',
+                    borderWidth: 2,
+                    borderDash: [5, 5], // Dashed line
+                    pointRadius: 1, 
+                    fill: false,
+                    tension: 0.2 
+                });
+            } else {
+                datasets[0].label = 'Saldo Ekuitas Real (USD)';
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: { 
+                        legend: { display: true },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    let value = context.parsed.y;
+                                    let growth = 0;
+                                    if (startCapitalGlobal > 0) {
+                                        growth = ((value - startCapitalGlobal) / startCapitalGlobal) * 100;
+                                    }
+                                    return label + formatUSD(value) + ` (${growth >= 0 ? '+' : ''}${growth.toFixed(2)}%)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { maxRotation: 45, minRotation: 45 } }
+                    }
+                }
+            });
+        }
+
+        function renderDrawdownChart(labels, ddData) {
+            const ctx = document.getElementById('drawdownChart').getContext('2d');
+            if (drawdownChart) drawdownChart.destroy();
+
+            drawdownChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Global Drawdown %',
+                        data: ddData,
+                        borderColor: '#dc2626', 
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        borderWidth: 1,
+                        pointRadius: 0, 
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: -100, max: 0 },
+                        x: { display: false }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderHeatmap(monthlyData, years) {
+            const container = document.getElementById('heatmapContainer');
+            let html = '<table class="heatmap-table"><thead><tr><th>Year</th>';
+            ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'].forEach(m => html += `<th>${m}</th>`);
+            html += '</tr></thead><tbody>';
+
+            years.forEach(year => {
+                html += `<tr><td class="font-bold bg-gray-50">${year}</td>`;
+                for(let m=0; m<12; m++) {
+                    const key = `${year}-${m}`;
+                    const data = monthlyData[key];
+                    if(data && data.hasData) {
+                        const growth = data.actualGrowthPct; 
+                        let color = '#f3f4f6';
+                        let textColor = '#1f2937';
+                        
+                        if(growth > 0) {
+                            const intensity = Math.min(growth * 10, 100) / 100; 
+                            color = `rgba(34, 197, 94, ${0.2 + (intensity * 0.8)})`; 
+                            if(intensity > 0.5) textColor = 'white';
+                        } else if(growth < 0) {
+                            const intensity = Math.min(Math.abs(growth) * 10, 100) / 100; 
+                            color = `rgba(239, 68, 68, ${0.2 + (intensity * 0.8)})`;
+                            if(intensity > 0.5) textColor = 'white';
+                        }
+                        
+                        html += `<td style="background-color:${color}; color:${textColor}" class="heatmap-cell">${growth.toFixed(1)}%</td>`;
+                    } else {
+                        html += `<td>-</td>`;
+                    }
+                }
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const investmentAmountInput = document.getElementById('investmentAmount');
+            const pairSelect = document.getElementById('pairSelect');
+            const riskPerTradePercentageInput = document.getElementById('riskPerTradePercentage');
+            const calculateBtn = document.getElementById('calculateBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const futureValueSpan = document.getElementById('futureValue');
+            const riskCapitalDisplaySpan = document.getElementById('riskCapitalDisplay');
+            const totalGrowthSpan = document.getElementById('totalGrowth');
+            const maxDrawdownDisplaySpan = document.getElementById('maxDrawdownDisplay'); 
+            const maxDrawdownValueDisplaySpan = document.getElementById('maxDrawdownValueDisplay'); 
+
+            const resultsTableBody = document.getElementById('resultsTableBody');
+            const csvFileInput = document.getElementById('csvFileInput');
+            const fileStatusText = document.getElementById('fileStatusText');
+            const dropZone = document.getElementById('dropZone');
+            const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+            const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+            const monthlyReturnInput = document.getElementById('monthlyReturn');
+            const compareChartToggle = document.getElementById('compareChartToggle');
+            
+            const monthlyDepositInput = document.getElementById('monthlyDeposit');
+            const monthlyWithdrawalInput = document.getElementById('monthlyWithdrawal');
+            const riskDashboard = document.getElementById('riskMetricsDashboard');
+            const advancedCharts = document.getElementById('advancedCharts');
+            
+            let uploadedCSVData = null; 
+            let lastFileName = "";
+            const STORAGE_KEY = "investCalcData_v13_flat_fixed"; 
+
+            function loadFromStorage() {
+                const savedData = localStorage.getItem(STORAGE_KEY);
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    if(data.investment) investmentAmountInput.value = data.investment;
+                    if(data.pair) pairSelect.value = data.pair;
+                    if(data.risk) riskPerTradePercentageInput.value = data.risk;
+                    if(data.monthlyReturn !== undefined) monthlyReturnInput.value = data.monthlyReturn;
+                    if(data.compareMode !== undefined) compareChartToggle.checked = data.compareMode;
+                    
+                    if(data.fileData && data.fileData.length > 0) {
+                        uploadedCSVData = data.fileData;
+                        lastFileName = data.fileName || "File Tersimpan";
+                        fileStatusText.textContent = `Data: ${lastFileName}`;
+                        fileStatusText.className = "text-[10px] text-blue-600 font-semibold mt-1";
+                        dropZone.classList.add('uploaded');
+                        setTimeout(calculateFromCSV, 500);
+                    }
+                }
+            }
+
+            function saveToStorage() {
+                const dataToSave = {
+                    investment: investmentAmountInput.value,
+                    pair: pairSelect.value,
+                    risk: riskPerTradePercentageInput.value,
+                    monthlyReturn: monthlyReturnInput.value,
+                    compareMode: compareChartToggle.checked,
+                    fileData: uploadedCSVData,
+                    fileName: lastFileName
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+            }
+
+            const inputs = [investmentAmountInput, pairSelect, riskPerTradePercentageInput, monthlyReturnInput, monthlyDepositInput, monthlyWithdrawalInput, compareChartToggle];
+            inputs.forEach(input => {
+                input.addEventListener('input', saveToStorage);
+                input.addEventListener('change', saveToStorage);
+            });
+
+            csvFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    lastFileName = file.name;
+                    fileStatusText.textContent = `File: ${file.name}`;
+                    fileStatusText.className = "text-[10px] text-green-700 font-semibold mt-1";
+                    dropZone.classList.add('uploaded');
+                    
+                    const reader = new FileReader();
+                    const fileName = file.name.toLowerCase();
+                    if (fileName.endsWith('.csv')) {
+                        reader.onload = function(event) {
+                            const content = event.target.result;
+                            uploadedCSVData = parseCSVStrict(content);
+                            saveToStorage(); 
+                        };
+                        reader.readAsText(file);
+                    } else {
+                        reader.onload = function(event) {
+                            const data = new Uint8Array(event.target.result);
+                            const workbook = XLSX.read(data, {type: 'array'});
+                            const firstSheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheetName];
+                            const csvOutput = XLSX.utils.sheet_to_csv(worksheet, { FS: "," });
+                            uploadedCSVData = parseCSVStrict(csvOutput);
+                            saveToStorage();
+                        };
+                        reader.readAsArrayBuffer(file);
+                    }
+                }
+            });
+
+            function parseCSVStrict(csvText) {
+                const lines = csvText.split(/\r\n|\n/);
+                const result = [];
+                let headers = [];
+                let startRow = 0;
+                
+                for(let i=0; i<lines.length; i++) {
+                    const line = lines[i].trim();
+                    if(line.toLowerCase().includes('no') && line.toLowerCase().includes('status')) {
+                        headers = line.split(',').map(h => h.trim());
+                        startRow = i + 1;
+                        break;
+                    }
+                }
+
+                if(headers.length === 0) {
+                    const firstLine = lines[0].split(',').map(h => h.trim());
+                    if(firstLine.includes('No') || firstLine.includes('Status')) {
+                        headers = firstLine;
+                        startRow = 1;
+                    } else {
+                        alert("Format File Tidak Dikenali.");
+                        return [];
+                    }
+                }
+
+                for(let i = startRow; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if(!line || line.replace(/,/g, '').trim() === '') break; 
+                    const currentline = line.split(',');
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        let val = currentline[index] ? currentline[index].trim() : '';
+                        obj[header] = val;
+                    });
+                    if(obj['Status'] && obj['Waktu Close']) result.push(obj);
+                }
+                return result.sort((a, b) => new Date(a['Waktu Close']) - new Date(b['Waktu Close']));
+            }
+
+            calculateBtn.addEventListener('click', () => {
+                if (!uploadedCSVData || uploadedCSVData.length === 0) {
+                    alert("Mohon unggah file CSV/Excel terlebih dahulu.");
+                    return;
+                }
+                calculateFromCSV();
+                saveToStorage(); 
+            });
+
+            function calculateFromCSV() {
+                resultsTableBody.innerHTML = '';
+                
+                // INPUTS
+                let startCapital = parseFloat(investmentAmountInput.value);
+                startCapitalGlobal = startCapital; // Set global for chart callback
+                const riskPercent = parseFloat(riskPerTradePercentageInput.value);
+                
+                const targetInputValue = monthlyReturnInput.value;
+                let isCappedMode = true;
+                let targetMonthlyPct = 0;
+
+                if (!targetInputValue || targetInputValue.trim() === "" || parseFloat(targetInputValue) === 0) {
+                    isCappedMode = false;
+                } else {
+                    targetMonthlyPct = parseFloat(targetInputValue);
+                }
+
+                const selectedPair = pairSelect.value;
+                const monthlyDeposit = parseFloat(monthlyDepositInput.value) || 0;
+                const monthlyWithdrawal = parseFloat(monthlyWithdrawalInput.value) || 0;
+                let pipValue = 10; 
+                if (selectedPair === 'Nasdaq') pipValue = 0.1;
+                
+                const showComparison = compareChartToggle.checked && isCappedMode; // Only compare if mode is Capped
+
+                if (isNaN(startCapital) || isNaN(riskPercent)) {
+                    alert("Isi Modal dan Risiko");
+                    return;
+                }
+
+                const monthlyBuckets = {};
+                uploadedCSVData.forEach(trade => {
+                    const closeTime = trade['Waktu Close']; 
+                    const dateObj = new Date(closeTime); 
+                    if (isNaN(dateObj.getTime())) return;
+                    
+                    const year = dateObj.getFullYear();
+                    const month = dateObj.getMonth();
+                    const key = `${year}-${month}`;
+                    
+                    if (!monthlyBuckets[key]) monthlyBuckets[key] = [];
+                    monthlyBuckets[key].push(trade);
+                });
+
+                const monthlyData = {};
+                const chartLabels = ['Start'];
+                const chartDataPoints = [startCapital];
+                const chartComparisonPoints = [startCapital]; // For Flat Comparison
+                const drawdownSeries = [0];
+                
+                // LOGIC UPDATE: Separate Real Balance vs Risk Capital
+                let currentBalance = startCapital;  // REAL MONEY
+                let riskCapital = startCapital;     // VIRTUAL BASE (Lot Basis)
+                
+                // For comparison chart (Shadow Calculation)
+                let compFlatBalance = startCapital;
+
+                let globalPeakBalance = startCapital;
+                let globalMaxDD = 0; 
+                let globalMaxDDValue = 0; 
+
+                // For Risk Metrics
+                let grossWin = 0;
+                let grossLoss = 0;
+                let winCount = 0;
+                let totalCount = 0;
+                const monthlyReturnsForMetrics = [];
+
+                const sortedKeys = Object.keys(monthlyBuckets).sort((a,b) => {
+                    const [yA, mA] = a.split('-').map(Number);
+                    const [yB, mB] = b.split('-').map(Number);
+                    return yA - yB || mA - mB;
+                });
+
+                sortedKeys.forEach(key => {
+                    const trades = monthlyBuckets[key];
+                    const [year, month] = key.split('-').map(Number);
+                    
+                    const monthStartBalance = currentBalance; 
+                    
+                    // Risk Amount is based on riskCapital
+                    const riskAmount = riskCapital * (riskPercent / 100);
+                    
+                    // Shadow Risk Amount (Always based on Start Capital)
+                    const shadowRiskAmount = startCapital * (riskPercent / 100);
+
+                    let monthlyRealizedPnL = 0;
+                    let shadowMonthlyPnL = 0;
+
+                    let minLot = 99999;
+                    let maxLot = 0;
+                    
+                    let monthPeakBalance = monthStartBalance;
+                    let runningMonthBalance = monthStartBalance;
+                    let currentMonthMaxDD = 0; 
+                    
+                    let monthlyWinCount = 0;
+                    let monthlyLossCount = 0;
+                    let monthlyTotalCount = 0;
+
+                    let tempGlobalBalance = currentBalance;
+
+                    trades.forEach(trade => {
+                        const slPips = parseFloat(trade['SL Pips']);
+                        let calculatedLot = 0.01;
+                        if (!isNaN(slPips) && slPips > 0) {
+                            calculatedLot = riskAmount / (slPips * pipValue);
+                        }
+                        if (calculatedLot < 0.01) calculatedLot = 0.01;
+                        
+                        if(calculatedLot < minLot) minLot = calculatedLot;
+                        if(calculatedLot > maxLot) maxLot = calculatedLot;
+
+                        let profitLoss = 0;
+                        let shadowPL = 0;
+
+                        const status = trade['Status'] ? trade['Status'].toUpperCase() : ''; 
+
+                        monthlyTotalCount++;
+                        if (status.includes('WIN')) {
+                            profitLoss = riskAmount * 2;
+                            shadowPL = shadowRiskAmount * 2; 
+
+                            grossWin += profitLoss;
+                            winCount++;
+                            monthlyWinCount++;
+                        } else if (status.includes('LOSS')) {
+                            profitLoss = -riskAmount;
+                            shadowPL = -shadowRiskAmount;
+
+                            grossLoss += Math.abs(profitLoss);
+                            monthlyLossCount++;
+                        }
+                        totalCount++;
+                        monthlyRealizedPnL += profitLoss;
+                        shadowMonthlyPnL += shadowPL;
+                        
+                        // Local DD (Month)
+                        runningMonthBalance += profitLoss;
+                        if (runningMonthBalance > monthPeakBalance) {
+                            monthPeakBalance = runningMonthBalance;
+                        } else {
+                            const dd = ((monthPeakBalance - runningMonthBalance) / monthPeakBalance) * 100;
+                            if (dd > currentMonthMaxDD) currentMonthMaxDD = dd;
+                        }
+
+                        // --- GLOBAL DD CHECK (INTRA-TRADE) ---
+                        tempGlobalBalance += profitLoss;
+                        
+                        if (tempGlobalBalance > globalPeakBalance) {
+                            globalPeakBalance = tempGlobalBalance;
+                        } else {
+                            // Calculate DD
+                            const currentDDVal = globalPeakBalance - tempGlobalBalance;
+                            const ddPct = (currentDDVal / globalPeakBalance) * 100;
+                            
+                            if (ddPct > globalMaxDD) {
+                                globalMaxDD = ddPct;
+                                globalMaxDDValue = currentDDVal; 
+                            }
+                        }
+                    });
+
+                    // 1. Saldo Real SELALU diupdate (Kalkulasi Biasa)
+                    currentBalance = monthStartBalance + monthlyRealizedPnL + monthlyDeposit - monthlyWithdrawal;
+                    compFlatBalance += shadowMonthlyPnL + monthlyDeposit - monthlyWithdrawal; // Update Shadow Balance
+
+                    if (currentBalance > globalPeakBalance) {
+                         globalPeakBalance = currentBalance;
+                    }
+
+                    // 3. Risk Capital Update (Compounding Logic)
+                    // NEW LOGIC: Calculate growth relative to START CAPITAL (fixed denom), not monthStartBalance
+                    const actualGrowthPct = (monthlyRealizedPnL / startCapital) * 100;
+
+                    // Compounding Threshold Check: Still use growth relative to risk capital for decision
+                    const growthRelativeToRisk = (monthlyRealizedPnL / riskCapital) * 100;
+
+                    if (isCappedMode) {
+                        // MODE TARGET (CAPPED)
+                        if (monthlyRealizedPnL > 0) {
+                            if (growthRelativeToRisk >= targetMonthlyPct) {
+                                riskCapital = currentBalance; // Target Tembus -> Compound
+                            } else {
+                                // Profit < Target -> No Compound (Risk Capital Fixed)
+                            }
+                        } else {
+                            riskCapital = currentBalance; // Loss -> Safety Downscale
+                        }
+                    } else {
+                        // MODE TARGET KOSONG (FLAT / NO COMPOUNDING)
+                        // "Hanya di kalkulasikan normal saja tidak akan di compounding apapun"
+                        // Resiko selalu dikunci ke Modal Awal, tidak peduli untung berapa.
+                        riskCapital = startCapital; 
+                    }
+
+                    monthlyReturnsForMetrics.push(actualGrowthPct);
+
+                    monthlyData[key] = {
+                        year, month,
+                        startBalance: monthStartBalance,
+                        endBalance: currentBalance,
+                        riskCapitalBase: riskCapital, 
+                        lotSizes: [minLot, maxLot],
+                        actualGrowthPct: actualGrowthPct, 
+                        monthlyRealizedPnL: monthlyRealizedPnL, 
+                        maxDD: currentMonthMaxDD,
+                        winCount: monthlyWinCount,
+                        lossCount: monthlyLossCount,
+                        totalCount: monthlyTotalCount,
+                        hasData: true
+                    };
+
+                    const monthName = new Date(year, month).toLocaleString('default', { month: 'short' });
+                    chartLabels.push(`${monthName} ${year}`);
+                    chartDataPoints.push(currentBalance);
+                    chartComparisonPoints.push(compFlatBalance);
+                    
+                    const peak = Math.max(...chartDataPoints);
+                    const currentDD = ((peak - currentBalance) / peak) * 100;
+                    drawdownSeries.push(-currentDD);
+                });
+
+                // --- RISK METRICS ---
+                const profitFactor = grossLoss > 0 ? (grossWin / grossLoss) : grossWin;
+                const winRatePct = totalCount > 0 ? (winCount / totalCount) * 100 : 0;
+                const lossProbPct = totalCount > 0 ? 100 - winRatePct : 0;
+                
+                const avgReturn = average(monthlyReturnsForMetrics);
+                const stdDev = calculateStandardDeviation(monthlyReturnsForMetrics);
+                const downsideDev = calculateDownsideDeviation(monthlyReturnsForMetrics, 0); 
+                
+                let sharpeRatio = 0;
+                if(stdDev > 0) sharpeRatio = (avgReturn / stdDev) * Math.sqrt(12);
+
+                let sortinoRatioStr = "N/A";
+                if(downsideDev > 0) {
+                    const sortino = (avgReturn / downsideDev) * Math.sqrt(12);
+                    sortinoRatioStr = sortino.toFixed(2);
+                } else if (avgReturn > 0) {
+                    sortinoRatioStr = "∞"; 
+                } else {
+                    sortinoRatioStr = "0.00";
+                }
+
+                document.getElementById('profitFactorVal').textContent = profitFactor.toFixed(2);
+                document.getElementById('winRateVal').textContent = winRatePct.toFixed(2) + '%';
+                document.getElementById('lossProbVal').textContent = lossProbPct.toFixed(2) + '%';
+                document.getElementById('sharpeRatioVal').textContent = sharpeRatio.toFixed(2);
+                document.getElementById('sortinoRatioVal').textContent = sortinoRatioStr;
+                
+                riskDashboard.classList.remove('hidden');
+                advancedCharts.classList.remove('hidden');
+
+                const uniqueYears = [...new Set(sortedKeys.map(k => monthlyData[k].year))].sort();
+
+                uniqueYears.forEach(year => {
+                    const yearRow = document.createElement('tr');
+                    yearRow.innerHTML = `<th class="sticky-col year-header z-20">${year}</th>
+                                         <td colspan="13" class="text-left year-header pl-4">
+                                            <span class="opacity-90 font-light">Result - </span> ${selectedPair} 
+                                         </td>`;
+                    resultsTableBody.appendChild(yearRow);
+
+                    const usdRow = document.createElement('tr');
+                    usdRow.innerHTML = `<th class="sticky-col row-label text-xs">Saldo Akhir ($)</th>`;
+                    
+                    const profitRow = document.createElement('tr');
+                    profitRow.innerHTML = `<th class="sticky-col row-label text-xs">Profit Bersih ($)</th>`;
+
+                    const lotRow = document.createElement('tr');
+                    lotRow.innerHTML = `<th class="sticky-col row-label text-xs">Lot (Min-Max)</th>`;
+                    const growthRow = document.createElement('tr');
+                    growthRow.innerHTML = `<th class="sticky-col row-label text-xs">Pertumbuhan (%)</th>`;
+                    
+                    const execRow = document.createElement('tr');
+                    execRow.innerHTML = `<th class="sticky-col row-label text-xs">Total Eksekusi</th>`;
+
+                    const plCountRow = document.createElement('tr');
+                    plCountRow.innerHTML = `<th class="sticky-col row-label text-xs">Win / Loss</th>`;
+
+                    const netExecRow = document.createElement('tr');
+                    netExecRow.innerHTML = `<th class="sticky-col row-label text-xs">Eksekusi Bersih</th>`;
+                    
+                    const ddRow = document.createElement('tr');
+                    ddRow.innerHTML = `<th class="sticky-col row-label text-xs">Max Drawdown (%)</th>`;
+
+                    let yearStart = 0;
+                    let yearEnd = 0;
+                    let firstMonth = true;
+                    let yearMaxDDs = []; 
+                    
+                    let yearWin = 0;
+                    let yearLoss = 0;
+                    let yearTotalExec = 0;
+                    let yearTotalProfit = 0; 
+
+                    for (let m = 0; m < 12; m++) {
+                        const key = `${year}-${m}`;
+                        const data = monthlyData[key];
+                        
+                        if (data) {
+                            if(firstMonth) { yearStart = data.startBalance; firstMonth = false; }
+                            yearEnd = data.endBalance;
+                            yearMaxDDs.push(data.maxDD);
+                            
+                            yearWin += data.winCount;
+                            yearLoss += data.lossCount;
+                            yearTotalExec += data.totalCount;
+                            yearTotalProfit += data.monthlyRealizedPnL;
+
+                            usdRow.innerHTML += `<td>${formatK(data.endBalance)}</td>`;
+                            
+                            const prof = data.monthlyRealizedPnL;
+                            const profColor = prof >= 0 ? 'text-green-600' : 'text-red-600';
+                            profitRow.innerHTML += `<td class="text-xs font-bold ${profColor}">${formatK(prof)}</td>`;
+
+                            lotRow.innerHTML += `<td class="text-xs">${data.lotSizes[0].toFixed(2)}-${data.lotSizes[1].toFixed(2)}</td>`;
+                            
+                            const actualVal = data.actualGrowthPct;
+                            let colorClass = "text-gray-400";
+                            
+                            // Visual Coloring Logic
+                            if (isCappedMode) {
+                                if (actualVal >= targetMonthlyPct) {
+                                    colorClass = "text-green-600 font-bold";
+                                } else if (actualVal > 0 && actualVal < targetMonthlyPct) {
+                                    colorClass = "text-orange-500 font-bold";
+                                } else if (actualVal < 0) {
+                                    colorClass = "text-red-600 font-bold";
+                                }
+                            } else {
+                                // Mode Flat (Target Kosong) -> No Orange needed, just Green/Red
+                                if (actualVal > 0) colorClass = "text-green-600 font-bold";
+                                else if (actualVal < 0) colorClass = "text-red-600 font-bold";
+                            }
+                            
+                            growthRow.innerHTML += `<td class="${colorClass}">
+                                <div>${actualVal > 0 ? '+' : ''}${actualVal.toFixed(2)}%</div>
+                            </td>`;
+
+                            execRow.innerHTML += `<td class="text-xs">${data.totalCount}</td>`;
+                            plCountRow.innerHTML += `<td class="text-xs text-gray-600">${data.winCount} / ${data.lossCount}</td>`;
+                            
+                            const net = data.winCount - data.lossCount;
+                            const netColor = net >= 0 ? 'text-green-600' : 'text-red-600';
+                            netExecRow.innerHTML += `<td class="text-xs font-bold ${netColor}">${net > 0 ? '+' : ''}${net}</td>`;
+
+                            const ddVal = data.maxDD;
+                            const ddColor = ddVal > 0 ? 'text-red-500' : 'text-gray-400';
+                            ddRow.innerHTML += `<td class="${ddColor} text-xs font-medium">-${ddVal.toFixed(2)}%</td>`;
+
+                        } else {
+                            usdRow.innerHTML += `<td class="text-gray-300">-</td>`;
+                            profitRow.innerHTML += `<td class="text-gray-300">-</td>`;
+                            lotRow.innerHTML += `<td class="text-gray-300">-</td>`;
+                            growthRow.innerHTML += `<td class="text-gray-300">-</td>`;
+                            execRow.innerHTML += `<td class="text-gray-300">-</td>`;
+                            plCountRow.innerHTML += `<td class="text-gray-300">-</td>`;
+                            netExecRow.innerHTML += `<td class="text-gray-300">-</td>`;
+                            ddRow.innerHTML += `<td class="text-gray-300">-</td>`;
+                        }
+                    }
+                    
+                    // FIXED: Annual Growth now uses START CAPITAL as denominator, NOT yearStart
+                    // This aligns with the "Linear Calculation" request.
+                    let annGrowth = (yearTotalProfit / startCapital) * 100;
+                    
+                    usdRow.innerHTML += `<td class="net-profit-cell sticky right-0 z-10 border-l border-green-200">${formatUSD(yearEnd)}</td>`;
+                    
+                    const yearProfColor = yearTotalProfit >= 0 ? 'text-green-600' : 'text-red-600';
+                    profitRow.innerHTML += `<td class="bg-gray-50 sticky right-0 z-10 border-l border-gray-200 font-bold ${yearProfColor}">${formatUSD(yearTotalProfit)}</td>`;
+
+                    lotRow.innerHTML += `<td class="bg-gray-50 sticky right-0 z-10"></td>`;
+                    
+                    // Display Annual Growth based on Start Capital
+                    growthRow.innerHTML += `<td class="bg-gray-50 sticky right-0 z-10 border-l border-green-200 ${annGrowth>=0?'text-green-600':'text-red-600'} font-bold">${annGrowth>0?'+':''}${annGrowth.toFixed(2)}%</td>`;
+                    
+                    execRow.innerHTML += `<td class="bg-gray-50 sticky right-0 z-10 border-l border-gray-200 font-bold">${yearTotalExec}</td>`;
+                    plCountRow.innerHTML += `<td class="bg-gray-50 sticky right-0 z-10 border-l border-gray-200 text-xs">${yearWin} / ${yearLoss}</td>`;
+                    
+                    const yearNet = yearWin - yearLoss;
+                    const yearNetColor = yearNet >= 0 ? 'text-green-600' : 'text-red-600';
+                    netExecRow.innerHTML += `<td class="bg-gray-50 sticky right-0 z-10 border-l border-gray-200 font-bold ${yearNetColor}">${yearNet > 0 ? '+' : ''}${yearNet}</td>`;
+
+                    const yearWorstDD = yearMaxDDs.length > 0 ? Math.max(...yearMaxDDs) : 0;
+                    ddRow.innerHTML += `<td class="bg-red-50 sticky right-0 z-10 border-l border-red-200 text-red-600 font-bold">-${yearWorstDD.toFixed(2)}%</td>`;
+
+                    resultsTableBody.appendChild(usdRow);
+                    resultsTableBody.appendChild(profitRow);
+                    resultsTableBody.appendChild(lotRow);
+                    resultsTableBody.appendChild(growthRow);
+                    resultsTableBody.appendChild(execRow);
+                    resultsTableBody.appendChild(plCountRow);
+                    resultsTableBody.appendChild(netExecRow);
+                    resultsTableBody.appendChild(ddRow); 
+                });
+
+                // UI UPDATES
+                futureValueSpan.textContent = formatUSD(currentBalance);
+                riskCapitalDisplaySpan.textContent = formatUSD(riskCapital);
+                
+                const totalGrowthPct = ((currentBalance - startCapital) / startCapital) * 100;
+                totalGrowthSpan.textContent = `${totalGrowthPct > 0 ? '+' : ''}${totalGrowthPct.toFixed(2)}%`;
+                
+                maxDrawdownDisplaySpan.textContent = `-${globalMaxDD.toFixed(2)}%`;
+                maxDrawdownValueDisplaySpan.textContent = `-${formatUSD(globalMaxDDValue)}`;
+
+                // PASS SECOND DATASET ONLY IF TOGGLE IS ON AND MODE IS CAPPED
+                renderChart(chartLabels, chartDataPoints, showComparison ? chartComparisonPoints : null);
+                
+                renderDrawdownChart(chartLabels, drawdownSeries);
+                renderHeatmap(monthlyData, uniqueYears);
+            }
+
+            resetBtn.addEventListener('click', () => {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload(); 
+            });
+
+            const hamburgerButton = document.getElementById('hamburger-button');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const closeMenuBtn = document.getElementById('closeMenuBtn');
+            function toggleMenu() {
+                if (mobileMenu) mobileMenu.classList.toggle('hidden');
+            }
+            if (hamburgerButton) hamburgerButton.addEventListener('click', toggleMenu);
+            if (closeMenuBtn) closeMenuBtn.addEventListener('click', toggleMenu);
+
+            downloadExcelBtn.addEventListener('click', () => {
+                exportToCsv(`Proyeksi_Capped_${new Date().toISOString().slice(0, 10)}.csv`);
+            });
+
+            downloadPdfBtn.addEventListener('click', () => {
+                const hasRows = resultsTableBody.querySelectorAll('tr').length > 0;
+                if (!hasRows) {
+                    alert("Belum ada data.");
+                    return;
+                }
+                exportToPdf();
+            });
+
+            loadFromStorage(); 
+        });
+    </script>
+</body>
+</html>
